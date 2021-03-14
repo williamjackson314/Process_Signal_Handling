@@ -29,7 +29,7 @@ void mourn(char parent_name, char child_name, int status){
 char pid_to_name(pid_t base_id, pid_t proc_id){
 	
 	char names[] = {'A','B','C','D'};
-	int i = (base_id - proc_id);
+	int i = (proc_id - base_id);
 
 	return names[i];
 } 
@@ -60,7 +60,7 @@ int main()
 
 		pid_t child_pid = wait(&status);
 		char child_name = pid_to_name(base_pid, child_pid);
-		mourn(curr_name, child_name);
+		mourn(curr_name, child_name, status);
 		goaway(curr_name);
 	}
 
@@ -74,7 +74,7 @@ int main()
  
 	pid_t child_pid = wait(&status);
 	char child_name = pid_to_name(base_pid, child_pid);
-	mourn(curr_name, child_name);
+	mourn(curr_name, child_name, status);
 	goaway(curr_name);
 
   return 0;
