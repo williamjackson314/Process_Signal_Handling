@@ -21,7 +21,7 @@ void goaway(char myName)
 void mourn(char parent_name, char child_name, int status){
 
 	if (WIFEXITED(status)){
-		printf("Process %c here: Process %c exited with status %d.\n", parent_name, child_name, WEXITSTATUS(status));
+		printf("Process %c here: Process %c exited with status %x.\n", parent_name, child_name, WEXITSTATUS(status));
 	}
 }
 
@@ -75,6 +75,11 @@ int main()
 	pid_t child_pid = wait(&status);
 	char child_name = pid_to_name(base_pid, child_pid);
 	mourn(curr_name, child_name, status);
+
+	pid_t child_pid = wait(&status);
+	char child_name = pid_to_name(base_pid, child_pid);
+	mourn(curr_name, child_name, status);
+	
 	goaway(curr_name);
 
   return 0;
