@@ -14,7 +14,7 @@ void greet(char myName)
 
 void goaway(char myName)
 {
-	printf("Process %c exited normally.\n", myName);
+	printf("Process %c exits normally.\n", myName);
 	exit(0);
 }
 
@@ -38,8 +38,10 @@ int main()
 {
 	pid_t base_pid = getpid();
 	pid_t pid;
+	pid_t child_pid;
 	int status;
 	char curr_name;
+	char child_name;
 
 	curr_name = pid_to_name(base_pid, getpid());
 	greet(curr_name);
@@ -49,35 +51,37 @@ int main()
 		curr_name = pid_to_name(base_pid, getpid());
 		greet(curr_name);
 		
-		pid = fork();
-		
-		if (pid == 0) {
+		if ((pid = fork()) == 0) {
 
-			curr_name = pid_to_name(base_pid, getpid());
+			curr_name = pid_to_name(base_pid, getpid()-1); //subtract one because this should be C, but is forked after D
 			greet(curr_name);
 			goaway(curr_name);
 		}
 
-		pid_t child_pid = wait(&status);
-		char child_name = pid_to_name(base_pid, child_pid);
+		child_pid = wait(&status);
+		child_name = pid_to_name(base_pid, child_pid - 1);
 		mourn(curr_name, child_name, status);
 		goaway(curr_name);
 	}
-
-	if ((pid = fork()) == 0) {
-
-		curr_name = pid_to_name(base_pid, getpid());
-		greet(curr_name);
-		goaway(curr_name);
+	else {
 		
-	}
- 
-	pid_t child_pid = wait(&status);
-	char child_name = pid_to_name(base_pid, child_pid);
-	mourn(curr_name, child_name, status);
+		pid = fork();
+		if (pid == 0) {
+			
+			curr_name = pid_to_name(base_pid, getpid()+1); //add one because this should be D, but is forked before D
+			greet(curr_name);
+			goaway(curr_name);
+			
+		}
+	
+		child_pid = wait(&status);
+		child_name = pid_to_name(base_pid, child_pid+1);
+		mourn(curr_name, child_name, status);
 
-	pid_t child_pid = wait(&status);
-	char child_name = pid_to_name(base_pid, child_pid);
+	}
+
+	child_pid = wait(&status);
+	child_name = pid_to_name(base_pid, child_pid);
 	mourn(curr_name, child_name, status);
 	
 	goaway(curr_name);
