@@ -1,19 +1,87 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <signal.h>
-#include <wait.h>
+#include <sys/types.h>
 
-typedef void (*sighandler_t)(int);
+//Declare global variables	
+pid_t Bpid;
+pid_t Dpid;
+
 void dieWithError(char *);
 
-
-void greet(char myName) {
-  printf("Process %c, PID %d greets you.\n",myName,getpid());
-  fflush(stdout);
+void greet(char myName)
+{ 
+	printf("Process %c, PID %d greets you.\n",myName,getpid());
+	fflush(stdout);
 }
 
-int main() {
-  /* YOUR CODE HERE - See Instructions */
+void goaway(char myName)
+{
+	printf("Process %c exits normally.\n", myName);
+	exit(0);
+}
+
+void mourn(char parent_name, char child_name, int status){
+
+	if (WIFEXITED(status)){
+		printf("Process %c here: Process %c exited with status %x.\n", parent_name, child_name, WEXITSTATUS(status));
+	}
+}
+
+
+char pid_to_name(pid_t proc_id){
+
+	if (proc_id == Bpid)
+		return 'B';
+	else if (proc_id == Dpid)
+		return 'D';
+
+} 
+
+int main()
+{
+	pid_t base_pid = getpid();
+	pid_t pid;
+	pid_t child_pid;
+	int status;
+	char curr_name;
+	char child_name;
+
+	greet('A');
+
+	if ((Bpid = fork()) == 0) {
+		
+		greet('B');
+		
+		if ((pid = fork()) == 0) {
+			greet('C');
+			goaway('C');
+		}
+		
+		wait(&status);
+		mourn('B', 'C', status);
+		goaway('B');
+	}
+	else {
+		
+		if ((Dpid = fork()) == 0) {
+			
+			greet('D');
+			goaway('D');
+			
+		}
+	
+		child_pid = wait(&status);
+		child_name = pid_to_name(child_pid);
+		mourn('A', child_name, status);
+
+	}
+
+	child_pid = wait(&status);
+	child_name = pid_to_name(child_pid);
+	mourn('A', child_name, status);
+	
+	goaway('A');
+
   return 0;
 }

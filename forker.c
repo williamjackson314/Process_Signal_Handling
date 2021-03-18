@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <sys/types.h>
 
+//Declare global variables	
+pid_t Bpid;
+pid_t Dpid;
 
 void dieWithError(char *);
 
@@ -26,12 +29,13 @@ void mourn(char parent_name, char child_name, int status){
 }
 
 
-char pid_to_name(pid_t base_id, pid_t proc_id){
-	
-	char names[] = {'A','B','C','D'};
-	int i = (proc_id - base_id);
+char pid_to_name(pid_t proc_id){
 
-	return names[i];
+	if (proc_id == Bpid)
+		return 'B';
+	else if (proc_id == Dpid)
+		return 'D';
+
 } 
 
 int main()
@@ -43,48 +47,41 @@ int main()
 	char curr_name;
 	char child_name;
 
-	curr_name = pid_to_name(base_pid, getpid());
-	greet(curr_name);
+	greet('A');
 
-	if ((pid = fork()) == 0) {
+	if ((Bpid = fork()) == 0) {
 		
-		curr_name = pid_to_name(base_pid, getpid());
-		greet(curr_name);
+		greet('B');
 		
 		if ((pid = fork()) == 0) {
-
-			curr_name = pid_to_name(base_pid, getpid()-1); //subtract one because this should be C, but is forked after D
-			greet(curr_name);
-			goaway(curr_name);
+			greet('C');
+			goaway('C');
 		}
-
-		child_pid = wait(&status);
-		child_name = pid_to_name(base_pid, child_pid - 1);
-		mourn(curr_name, child_name, status);
-		goaway(curr_name);
+		
+		wait(&status);
+		mourn('B', 'C', status);
+		goaway('B');
 	}
 	else {
 		
-		pid = fork();
-		if (pid == 0) {
+		if ((Dpid = fork()) == 0) {
 			
-			curr_name = pid_to_name(base_pid, getpid()+1); //add one because this should be D, but is forked before D
-			greet(curr_name);
-			goaway(curr_name);
+			greet('D');
+			goaway('D');
 			
 		}
 	
 		child_pid = wait(&status);
-		child_name = pid_to_name(base_pid, child_pid+1);
-		mourn(curr_name, child_name, status);
+		child_name = pid_to_name(child_pid);
+		mourn('A', child_name, status);
 
 	}
 
 	child_pid = wait(&status);
-	child_name = pid_to_name(base_pid, child_pid);
-	mourn(curr_name, child_name, status);
+	child_name = pid_to_name(child_pid);
+	mourn('A', child_name, status);
 	
-	goaway(curr_name);
+	goaway('A');
 
   return 0;
 }
