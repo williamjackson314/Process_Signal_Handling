@@ -16,28 +16,28 @@ int sigint_count = 0;
 
 void sigalarm_handler(int signum){
   
-  sigset_t mask, prev_mask;
+  // sigset_t mask, prev_mask;
 
-  sigfillset(&mask);
-  sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+  // sigfillset(&mask);
+  // sigprocmask(SIG_BLOCK, &mask, &prev_mask);
   
   sigalarm_count += 1;
   alarm(PERIOD);
   
-  sigprocmask(SIG_SETMASK, &prev_mask, NULL);
+  // sigprocmask(SIG_SETMASK, &prev_mask, NULL);
   
 } 
 
 void sigint_handler(int signum){
   
-  sigset_t mask, prev_mask;
+  // sigset_t mask, prev_mask;
 
-  sigfillset(&mask);
-  sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+  // sigfillset(&mask);
+  // sigprocmask(SIG_BLOCK, &mask, &prev_mask);
   
   sigint_count += 1;
   
-  sigprocmask(SIG_SETMASK, &prev_mask, NULL);
+  //sigprocmask(SIG_SETMASK, &prev_mask, NULL);
   
 }
 
@@ -85,6 +85,7 @@ int main() {
 
       printf(".\n");
       sigsuspend(&prev);
+      
     }
 
     sigprocmask(SIG_SETMASK, &prev, NULL);
