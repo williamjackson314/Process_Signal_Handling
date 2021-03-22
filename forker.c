@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include "wrappers.h" 
 
 //Declare global variables	
 pid_t Bpid;
@@ -28,7 +29,6 @@ void mourn(char parent_name, char child_name, int status){
 	}
 }
 
-
 char pid_to_name(pid_t proc_id){
 
 	if (proc_id == Bpid)
@@ -49,35 +49,35 @@ int main()
 
 	greet('A');
 
-	if ((Bpid = fork()) == 0) {
+	if ((Bpid = Fork()) == 0) {
 		
 		greet('B');
 		
-		if ((pid = fork()) == 0) {
+		if ((pid = Fork()) == 0) {
 			greet('C');
 			goaway('C');
 		}
 		
-		wait(&status);
+		Wait(&status);
 		mourn('B', 'C', status);
 		goaway('B');
 	}
 	else {
 		
-		if ((Dpid = fork()) == 0) {
+		if ((Dpid = Fork()) == 0) {
 			
 			greet('D');
 			goaway('D');
 			
 		}
 	
-		child_pid = wait(&status);
+		child_pid = Wait(&status);
 		child_name = pid_to_name(child_pid);
 		mourn('A', child_name, status);
 
 	}
 
-	child_pid = wait(&status);
+	child_pid = Wait(&status);
 	child_name = pid_to_name(child_pid);
 	mourn('A', child_name, status);
 	

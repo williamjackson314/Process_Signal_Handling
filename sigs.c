@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <signal.h>
+#include "wrappers.h"
 
 typedef void (*sighandler_t)(int);
 void dieWithError(char *);

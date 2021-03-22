@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <signal.h>
+#include "wrappers.h"
 
 //Declare global variables	
 pid_t B_pid;
@@ -63,15 +65,15 @@ int main()
 	struct sigaction sigusr2_action;
 	sigset_t unblock, block_all, old_mask;
 
-	if (sigfillset(&block_all) < 0) dieWithError(); // fill all bits in blocked set
-	if (sigemptyset(&unblock) < 0) dieWithError();
+	if (sigfillset(&block_all) < 0) dieWithError("\nsig fill set error"); // fill all bits in blocked set
+	if (sigemptyset(&unblock) < 0) dieWithError("\nsig empty set error");
 
 	sigusr1_action.sa_handler = sigusr1_handler;
-	if (sigemptyset(&sigusr1_action.sa_mask) < 0) dieWithError();  // empty blocked set
+	if (sigemptyset(&sigusr1_action.sa_mask) < 0) dieWithError("\nsig empty set error");  // empty blocked set
 	sigusr1_action.sa_flags = SA_RESTART;
 
 	sigusr2_action.sa_handler = sigusr2_handler;
-	if (sigemptyset(&sigusr2_action.sa_mask) < 0) dieWithError();  // empty blocked set
+	if (sigemptyset(&sigusr2_action.sa_mask) < 0) dieWithError("\nsig empty set error");  // empty blocked set
 	sigusr2_action.sa_flags = SA_RESTART;
 
 	sigaction(SIGUSR1, &sigusr1_action, NULL);
@@ -89,12 +91,13 @@ int main()
 			greet('C');
 			kill(parent_pid, SIGUSR1); //Sending signal to A, however may need to send to B, then to A
 			
-			if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError();
+			if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError("\nsig proc mask error");
 			while(sigusr2_flag == 0){
 				sigsuspend(&unblock);
 			}
-
-			if (sigprocmask(SIG_SETMASK, &old_mask, NULL) < 0) dieWithError();
+			
+			sigusr2_flag = 0;
+			if (sigprocmask(SIG_SETMASK, &old_mask, NULL) < 0) dieWithError("\nsig proc mask error");
 			
 			goaway('C');
 		}
@@ -108,57 +111,62 @@ int main()
 		
 		if ((D_pid = fork()) == 0) {
 			
-			if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError();
+			if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError("\nsig proc mask error");
 			
 			while(sigusr1_flag == 0){
 				sigsuspend(&unblock);
 			}
-
-			if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError();		
+			
+			sigusr1_flag = 0;
+			if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError("\nsig proc mask error");		
 			
 			greet('D');
 			kill(parent_pid, SIGUSR2); //signal that process D has called greet, so process C can now exit
 			
-			if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError();
+			if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError("\nsig proc mask error");
 			
 			while(sigusr1_flag == 0){
 				sigsuspend(&unblock);
 			}
-
-			if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError();	
+			
+			sigusr1_flag = 0;
+			if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError("\nsig proc mask error");	
 			
 			goaway('D');
 			
 		}
 		
 		// Waits for signal from process C indicating that it has called greet, then sends that signal to process D
-		if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError();
+		if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError("\nsig proc mask error");
 		
 		while(sigusr1_flag == 0){	//waits for signal handler to change condition flag
 			sigsuspend(&unblock);
 		}
 		
-		if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError(); // reset to original mask set
+		sigusr1_flag = 0;
+		if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError("\nsig proc mask error"); // reset to original mask set
 		kill(D_pid, SIGUSR1);
 
 		// Waits for signal from process D indicating that it has called greet, then sends that signal to process C
-		if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError();
+		if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError("\nsig proc mask error");
 		
 		while(sigusr2_flag == 0){
 			sigsuspend(&unblock);
 		}
 		
-		if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError();
+		sigusr2_flag = 0;
+		if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError("\nsig proc mask error");
 		kill(C_pid, SIGUSR2);
 
 		// Waits for signal indicating that process C has has terminated, then sends that signal to D
-		if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError();
+		if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError("\nsig proc mask error");
 		
 		while(sigusr1_flag == 0){
 			sigsuspend(&unblock);
 		}
 		
-		if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError();
+		sigusr1_flag = 0;
+		if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError("\nsig proc mask error");
 		kill(D_pid, SIGUSR1);
 
 		child_pid = wait(&status);
