@@ -6,8 +6,7 @@
 #include "wrappers.h"
 
 //Declare global variables	
-pid_t B_pid;
-pid_t D_pid;
+pid_t B_pid, D_pid;
 sig_atomic_t sigusr1_flag = 0;
 sig_atomic_t sigusr2_flag = 0;
 
@@ -55,15 +54,12 @@ char pid_to_name(pid_t proc_id){
 int main()
 {
 	pid_t parent_pid = getpid();
-	pid_t child_pid;
-	pid_t C_pid;
+	pid_t child_pid, C_pid;
 	int status;
-	char curr_name;
-	char child_name;
+	char curr_name, child_name;
 
-	struct sigaction sigusr1_action;
-	struct sigaction sigusr2_action;
-	sigset_t unblock, block_all, old_mask;
+	struct sigaction sigusr1_action, sigusr2_action;
+	sigset_t unblock, block_all, old_mask;	//declare masks for signal blocking
 
 	if (sigfillset(&block_all) < 0) dieWithError("\nsig fill set error"); // fill all bits in blocked set
 	if (sigemptyset(&unblock) < 0) dieWithError("\nsig empty set error");
@@ -76,18 +72,16 @@ int main()
 	if (sigemptyset(&sigusr2_action.sa_mask) < 0) dieWithError("\nsig empty set error");  // empty blocked set
 	sigusr2_action.sa_flags = SA_RESTART;
 
-	sigaction(SIGUSR1, &sigusr1_action, NULL);
-	sigaction(SIGUSR2, &sigusr2_action, NULL);
+	if (sigaction(SIGUSR1, &sigusr1_action, NULL) < 0) dieWithError("\nsig action error");
+	if (sigaction(SIGUSR2, &sigusr2_action, NULL) < 0) dieWithError("\nsig action error");
 
 	greet('A');
 
-	if ((B_pid = fork()) == 0) {
+	if ((B_pid = Fork()) == 0) {
 		
 		greet('B');
 		
-
-		
-		if ((C_pid = fork()) == 0) {
+		if ((C_pid = Fork()) == 0) {
 			greet('C');
 			kill(parent_pid, SIGUSR1); //Sending signal to A, however may need to send to B, then to A
 			
@@ -102,14 +96,14 @@ int main()
 			goaway('C');
 		}
 		
-		wait(&status);
+		Wait(&status);
 		kill(parent_pid, SIGUSR1); // signify that process C has terminated, so process D can now exit
 		mourn('B', 'C', status);
 		goaway('B');
 	}
 	else {
 		
-		if ((D_pid = fork()) == 0) {
+		if ((D_pid = Fork()) == 0) {
 			
 			if (sigprocmask(SIG_BLOCK, &block_all, &old_mask) < 0) dieWithError("\nsig proc mask error");
 			
@@ -169,13 +163,13 @@ int main()
 		if (sigprocmask(SIG_SETMASK,&old_mask, NULL) < 0) dieWithError("\nsig proc mask error");
 		kill(D_pid, SIGUSR1);
 
-		child_pid = wait(&status);
+		child_pid = Wait(&status);
 		child_name = pid_to_name(child_pid);
 		mourn('A', child_name, status);
 
 	}
 
-	child_pid = wait(&status);
+	child_pid = Wait(&status);
 	child_name = pid_to_name(child_pid);
 	mourn('A', child_name, status);
 	

@@ -1,12 +1,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <errno.h>
 #include <sys/types.h>
-#include "wrappers.h" 
+#include "wrappers.h"
 
 //Declare global variables	
-pid_t Bpid;
-pid_t Dpid;
+pid_t B_pid, D_pid;
 
 void dieWithError(char *);
 
@@ -31,25 +31,22 @@ void mourn(char parent_name, char child_name, int status){
 
 char pid_to_name(pid_t proc_id){
 
-	if (proc_id == Bpid)
+	if (proc_id == B_pid)
 		return 'B';
-	else if (proc_id == Dpid)
+	else if (proc_id == D_pid)
 		return 'D';
 
 } 
 
 int main()
 {
-	pid_t base_pid = getpid();
-	pid_t pid;
-	pid_t child_pid;
+	pid_t pid, child_pid;
 	int status;
-	char curr_name;
-	char child_name;
+	char curr_name,  child_name;
 
 	greet('A');
 
-	if ((Bpid = Fork()) == 0) {
+	if ((B_pid = Fork()) == 0) {
 		
 		greet('B');
 		
@@ -62,20 +59,17 @@ int main()
 		mourn('B', 'C', status);
 		goaway('B');
 	}
-	else {
-		
-		if ((Dpid = Fork()) == 0) {
-			
-			greet('D');
-			goaway('D');
-			
-		}
-	
-		child_pid = Wait(&status);
-		child_name = pid_to_name(child_pid);
-		mourn('A', child_name, status);
 
+	if ((D_pid = Fork()) == 0) {
+		
+		greet('D');
+		goaway('D');
+		
 	}
+
+	child_pid = Wait(&status);
+	child_name = pid_to_name(child_pid);
+	mourn('A', child_name, status);
 
 	child_pid = Wait(&status);
 	child_name = pid_to_name(child_pid);
