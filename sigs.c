@@ -4,7 +4,6 @@
 #include <signal.h>
 #include "wrappers.h"
 
-typedef void (*sighandler_t)(int);
 void dieWithError(char *);
 
 #define LIMIT 20
@@ -14,7 +13,7 @@ void dieWithError(char *);
 int sigalarm_count = 0;
 int sigint_count = 0;
 
-
+/* Block all signals, increment SIGALRM counter, restore previous mask */
 void sigalarm_handler(int signum){
   
   sigset_t mask, prev_mask;
@@ -29,6 +28,7 @@ void sigalarm_handler(int signum){
   
 } 
 
+/* Block all signals, increment SIGINT counter, restore previous mask */
 void sigint_handler(int signum){
   
   sigset_t mask, prev_mask;
@@ -51,7 +51,10 @@ int main() {
   
   pid_t pid;
   pid_t parent_pid;
+  int status;
 
+
+  /* Set up and install signal handlers */
   sigint_action.sa_handler = sigint_handler;
   if (sigemptyset(&sigint_action.sa_mask) < 0) dieWithError("\nsig empty set error");
   sigint_action.sa_flags = SA_RESTART;
@@ -63,17 +66,23 @@ int main() {
   if (sigaction(SIGINT, &sigint_action, NULL) < 0) dieWithError("\nsig action error");
   if (sigaction(SIGALRM, &sigalarm_action, NULL) < 0) dieWithError("\nsig action error");
   
-  if ((pid = fork()) == 0){
+  if ((pid = Fork()) == 0){
+    
     parent_pid = getppid();
-    getchar();
+    getchar(); // delay process to give parent process time to install sig handlers
 
     for (int i = 0; i < LIMIT; i++) {
+     
       if (kill(parent_pid, SIGINT) < 0) dieWithError("\nkill error"); 
+     
+      sleep(PERIOD); // sleep to give parent time to handle signal
     }
+
     printf("Child: finished sending SIGINT %d times\n", LIMIT);
     exit(0);
   }
 
+    /* Clear signal blocking sets and block SIGINT and SIGALRM */
     if (sigemptyset(&mask) < 0) dieWithError("\nsig empty set error");
     if (sigemptyset(&prev) < 0 ) dieWithError("\nsig empty set error");
 
@@ -91,6 +100,9 @@ int main() {
 
     }
 
+    Wait(&status);
+
+    /* Unblocks SIGINT AND SIGALRM signals */
     if (sigprocmask(SIG_SETMASK, &prev, NULL) < 0) dieWithError("\nsig proc mask error");
     printf("SIGINT counter = %d \nSIGALARM counter = %d\n", sigint_count, sigalarm_count);
     exit(0);
